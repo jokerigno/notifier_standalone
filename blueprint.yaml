@@ -1,0 +1,504 @@
+blueprint:
+  name: Centro Notifiche Avanzato
+  description: >
+    Sistema di notifiche avanzato che replica le funzionalità del notifier AppDaemon.
+    Supporta notifiche multiple (Telegram, Push, TTS, Alexa, VoIP) con gestione priorità,
+    modalità silenziosa, controllo orari e personalizzazione messaggi.
+  domain: automation
+  input:
+    # TRIGGER CONFIGURATION
+    trigger_entity:
+      name: Entità Trigger
+      description: Entità che scatena la notifica
+      selector:
+        entity: {}
+    
+    trigger_state:
+      name: Stato Trigger (opzionale)
+      description: Stato specifico che deve assumere l'entità per scatenare la notifica
+      default: ""
+      selector:
+        text: {}
+    
+    # NOTIFICATION SETTINGS
+    notification_title:
+      name: Titolo Notifica
+      description: Titolo del messaggio di notifica
+      default: "Notifica Home Assistant"
+      selector:
+        text: {}
+    
+    notification_message:
+      name: Messaggio
+      description: >
+        Messaggio di notifica. Puoi usare template Jinja2.
+        Variabili disponibili: {{ trigger.entity_id }}, {{ trigger.to_state.state }}, 
+        {{ trigger.from_state.state }}, {{ now() }}
+      default: "L'entità {{ trigger.entity_id }} è cambiata da {{ trigger.from_state.state }} a {{ trigger.to_state.state }}"
+      selector:
+        text:
+          multiline: true
+    
+    # NOTIFICATION CHANNELS
+    enable_telegram:
+      name: Abilita Telegram
+      description: Invia notifica via Telegram
+      default: false
+      selector:
+        boolean: {}
+    
+    telegram_service:
+      name: Servizio Telegram
+      description: Servizio notify Telegram (es. notify.telegram)
+      default: "notify.telegram"
+      selector:
+        text: {}
+    
+    telegram_data:
+      name: Dati Extra Telegram
+      description: Dati aggiuntivi per Telegram (formato YAML, es. parse_mode, keyboard)
+      default: ""
+      selector:
+        text:
+          multiline: true
+    
+    enable_mobile:
+      name: Abilita Notifiche Mobile
+      description: Invia notifica push ai dispositivi mobili
+      default: false
+      selector:
+        boolean: {}
+    
+    mobile_service:
+      name: Servizio Mobile
+      description: Servizio notify mobile (es. notify.mobile_app_iphone)
+      default: "notify.mobile_app"
+      selector:
+        text: {}
+    
+    mobile_data:
+      name: Dati Extra Mobile
+      description: Dati aggiuntivi per notifiche mobile (formato YAML)
+      default: ""
+      selector:
+        text:
+          multiline: true
+    
+    enable_tts:
+      name: Abilita TTS
+      description: Invia notifica vocale TTS
+      default: false
+      selector:
+        boolean: {}
+    
+    tts_service:
+      name: Servizio TTS
+      description: Servizio TTS (es. tts.google_translate_say)
+      default: "tts.google_translate_say"
+      selector:
+        text: {}
+    
+    tts_target:
+      name: Target TTS
+      description: Media player per TTS
+      selector:
+        entity:
+          domain: media_player
+    
+    tts_language:
+      name: Lingua TTS
+      description: Lingua per TTS
+      default: "it"
+      selector:
+        select:
+          options:
+            - label: "Italiano"
+              value: "it"
+            - label: "English"
+              value: "en"
+            - label: "Español"
+              value: "es"
+            - label: "Français"
+              value: "fr"
+            - label: "Deutsch"
+              value: "de"
+    
+    enable_alexa:
+      name: Abilita Alexa
+      description: Invia notifica vocale ad Alexa
+      default: false
+      selector:
+        boolean: {}
+    
+    alexa_service:
+      name: Servizio Alexa
+      description: Servizio Alexa Media Player
+      default: "notify.alexa_media"
+      selector:
+        text: {}
+    
+    alexa_target:
+      name: Target Alexa
+      description: Dispositivo Alexa di destinazione
+      selector:
+        entity:
+          domain: media_player
+    
+    # PRIORITY AND TIMING
+    notification_priority:
+      name: Priorità
+      description: Priorità della notifica
+      default: "normal"
+      selector:
+        select:
+          options:
+            - label: "Bassa"
+              value: "low"
+            - label: "Normale"
+              value: "normal"
+            - label: "Alta"
+              value: "high"
+            - label: "Critica"
+              value: "critical"
+    
+    enable_dnd:
+      name: Rispetta Modalità Non Disturbare
+      description: Non inviare notifiche durante la modalità DND
+      default: true
+      selector:
+        boolean: {}
+    
+    dnd_entity:
+      name: Entità DND
+      description: Entità che indica la modalità Non Disturbare
+      default: ""
+      selector:
+        entity: {}
+    
+    quiet_hours_start:
+      name: Inizio Ore Silenziose
+      description: Orario di inizio delle ore silenziose
+      default: "22:00:00"
+      selector:
+        time: {}
+    
+    quiet_hours_end:
+      name: Fine Ore Silenziose
+      description: Orario di fine delle ore silenziose
+      default: "07:00:00"
+      selector:
+        time: {}
+    
+    respect_quiet_hours:
+      name: Rispetta Ore Silenziose
+      description: Non inviare notifiche durante le ore silenziose
+      default: true
+      selector:
+        boolean: {}
+    
+    # REPEAT AND PERSISTENCE
+    enable_repeat:
+      name: Abilita Ripetizione
+      description: Ripeti la notifica se non viene riconosciuta
+      default: false
+      selector:
+        boolean: {}
+    
+    repeat_count:
+      name: Numero Ripetizioni
+      description: Numero massimo di ripetizioni
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 10
+          mode: box
+    
+    repeat_interval:
+      name: Intervallo Ripetizioni
+      description: Intervallo tra le ripetizioni (minuti)
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 60
+          mode: box
+    
+    # ADVANCED SETTINGS
+    enable_logging:
+      name: Abilita Log
+      description: Registra le notifiche inviate
+      default: true
+      selector:
+        boolean: {}
+    
+    log_level:
+      name: Livello Log
+      description: Livello di dettaglio del log
+      default: "info"
+      selector:
+        select:
+          options:
+            - label: "Debug"
+              value: "debug"
+            - label: "Info"
+              value: "info"
+            - label: "Warning"
+              value: "warning"
+            - label: "Error"
+              value: "error"
+    
+    additional_condition:
+      name: Condizione Aggiuntiva
+      description: Condizione aggiuntiva per l'invio (template Jinja2)
+      default: ""
+      selector:
+        text: {}
+
+mode: queued
+max: 50
+max_exceeded: silent
+
+variables:
+  # Template variables
+  title: !input notification_title
+  message: !input notification_message
+  priority: !input notification_priority
+  
+  # Channel settings
+  telegram_enabled: !input enable_telegram
+  mobile_enabled: !input enable_mobile
+  tts_enabled: !input enable_tts
+  alexa_enabled: !input enable_alexa
+  
+  # Services
+  telegram_service: !input telegram_service
+  mobile_service: !input mobile_service
+  tts_service: !input tts_service
+  alexa_service: !input alexa_service
+  
+  # Additional data
+  telegram_data: !input telegram_data
+  mobile_data: !input mobile_data
+  
+  # Timing
+  dnd_enabled: !input enable_dnd
+  dnd_entity: !input dnd_entity
+  quiet_hours_enabled: !input respect_quiet_hours
+  quiet_start: !input quiet_hours_start
+  quiet_end: !input quiet_hours_end
+  
+  # Repeat settings
+  repeat_enabled: !input enable_repeat
+  repeat_count: !input repeat_count
+  repeat_interval: !input repeat_interval
+  
+  # Logging
+  logging_enabled: !input enable_logging
+  log_level: !input log_level
+  
+  # Additional condition
+  extra_condition: !input additional_condition
+  
+  # Current time
+  current_time: "{{ now().strftime('%H:%M:%S') }}"
+  
+  # Quiet hours check
+  is_quiet_time: >
+    {% if quiet_hours_enabled %}
+      {% set start = quiet_start %}
+      {% set end = quiet_end %}
+      {% set now = current_time %}
+      {% if start <= end %}
+        {{ start <= now <= end }}
+      {% else %}
+        {{ now >= start or now <= end }}
+      {% endif %}
+    {% else %}
+      false
+    {% endif %}
+  
+  # DND check
+  is_dnd_active: >
+    {% if dnd_enabled and dnd_entity %}
+      {{ is_state(dnd_entity, 'on') }}
+    {% else %}
+      false
+    {% endif %}
+  
+  # Should send notification
+  should_send: >
+    {% set extra_ok = extra_condition == '' or extra_condition %}
+    {% set time_ok = not is_quiet_time %}
+    {% set dnd_ok = not is_dnd_active %}
+    {{ extra_ok and time_ok and dnd_ok }}
+
+trigger:
+  - platform: state
+    entity_id: !input trigger_entity
+    to: !input trigger_state
+    id: "main_trigger"
+
+condition:
+  - condition: template
+    value_template: "{{ should_send }}"
+
+action:
+  # Log notification start
+  - if:
+      - condition: template
+        value_template: "{{ logging_enabled }}"
+    then:
+      - service: system_log.write
+        data:
+          message: >
+            🔔 Notifier: Invio notifica per {{ trigger.entity_id }} 
+            ({{ trigger.from_state.state }} -> {{ trigger.to_state.state }})
+            Priorità: {{ priority }}
+          level: "{{ log_level }}"
+          logger: "blueprint.notifier"
+
+  # Counter for repeat functionality
+  - service: counter.reset
+    target:
+      entity_id: counter.notifier_repeat_{{ this.entity_id.split('.')[1] }}
+    continue_on_error: true
+
+  # Main notification sequence
+  - repeat:
+      sequence:
+        # Telegram Notification
+        - if:
+            - condition: template
+              value_template: "{{ telegram_enabled }}"
+          then:
+            - service: "{{ telegram_service }}"
+              data:
+                title: "{{ title }}"
+                message: "{{ message }}"
+                data: >
+                  {% if telegram_data %}
+                    {{ telegram_data | from_yaml }}
+                  {% else %}
+                    {}
+                  {% endif %}
+            - if:
+                - condition: template
+                  value_template: "{{ logging_enabled }}"
+              then:
+                - service: system_log.write
+                  data:
+                    message: "📱 Notifier: Telegram inviato - {{ title }}"
+                    level: "{{ log_level }}"
+                    logger: "blueprint.notifier"
+
+        # Mobile Push Notification
+        - if:
+            - condition: template
+              value_template: "{{ mobile_enabled }}"
+          then:
+            - service: "{{ mobile_service }}"
+              data:
+                title: "{{ title }}"
+                message: "{{ message }}"
+                data: >
+                  {% set base_data = {
+                    'priority': priority,
+                    'ttl': 3600 if priority == 'high' else 600,
+                    'group': 'notifier-' + this.entity_id.split('.')[1]
+                  } %}
+                  {% if mobile_data %}
+                    {% set custom_data = mobile_data | from_yaml %}
+                    {{ dict(base_data, **custom_data) }}
+                  {% else %}
+                    {{ base_data }}
+                  {% endif %}
+            - if:
+                - condition: template
+                  value_template: "{{ logging_enabled }}"
+              then:
+                - service: system_log.write
+                  data:
+                    message: "📱 Notifier: Push mobile inviato - {{ title }}"
+                    level: "{{ log_level }}"
+                    logger: "blueprint.notifier"
+
+        # TTS Notification
+        - if:
+            - condition: template
+              value_template: "{{ tts_enabled }}"
+          then:
+            # Check if media player is available
+            - condition: template
+              value_template: "{{ states('!input tts_target') not in ['unavailable', 'unknown'] }}"
+            - service: "{{ tts_service }}"
+              data:
+                entity_id: !input tts_target
+                message: "{{ message }}"
+                language: !input tts_language
+            - if:
+                - condition: template
+                  value_template: "{{ logging_enabled }}"
+              then:
+                - service: system_log.write
+                  data:
+                    message: "🔊 Notifier: TTS inviato - {{ message[:50] }}..."
+                    level: "{{ log_level }}"
+                    logger: "blueprint.notifier"
+
+        # Alexa Notification
+        - if:
+            - condition: template
+              value_template: "{{ alexa_enabled }}"
+          then:
+            # Check if Alexa device is available
+            - condition: template
+              value_template: "{{ states('!input alexa_target') not in ['unavailable', 'unknown'] }}"
+            - service: "{{ alexa_service }}"
+              data:
+                message: "{{ message }}"
+                target: !input alexa_target
+                data:
+                  type: announce
+            - if:
+                - condition: template
+                  value_template: "{{ logging_enabled }}"
+              then:
+                - service: system_log.write
+                  data:
+                    message: "🗣️ Notifier: Alexa announce inviato - {{ message[:50] }}..."
+                    level: "{{ log_level }}"
+                    logger: "blueprint.notifier"
+
+        # Wait before potential repeat (only if this is not the last iteration)
+        - if:
+            - condition: template
+              value_template: "{{ repeat_enabled and repeat.index < repeat_count }}"
+          then:
+            - delay:
+                minutes: "{{ repeat_interval }}"
+
+      # Repeat condition
+      count: "{{ repeat_count if repeat_enabled else 1 }}"
+
+  # Final logging
+  - if:
+      - condition: template
+        value_template: "{{ logging_enabled }}"
+    then:
+      - service: system_log.write
+        data:
+          message: >
+            ✅ Notifier: Sequenza completata per {{ trigger.entity_id }}
+            Canali attivi: {{ [telegram_enabled, mobile_enabled, tts_enabled, alexa_enabled] | select | list | length }}
+          level: "{{ log_level }}"
+          logger: "blueprint.notifier"
+
+  # Store notification in input_text for history (optional)
+  - service: input_text.set_value
+    target:
+      entity_id: input_text.last_notification_{{ this.entity_id.split('.')[1] }}
+    data:
+      value: >
+        {{ now().strftime('%Y-%m-%d %H:%M:%S') }} - {{ title }}: {{ message[:100] }}
+    continue_on_error: true
