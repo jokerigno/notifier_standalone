@@ -1,0 +1,324 @@
+# Package di supporto per il Blueprint Centro Notifiche
+# Salva questo file come packages/notifier_center.yaml
+
+notifier_center:
+  # Input Boolean per modalità DND globale
+  input_boolean:
+    notifier_dnd:
+      name: "Non Disturbare Notifiche"
+      icon: mdi:bell-off
+      initial: false
+    
+    notifier_quiet_hours:
+      name: "Ore Silenziose Attive"
+      icon: mdi:clock-outline
+      initial: false
+    
+    notifier_maintenance_mode:
+      name: "Modalità Manutenzione"
+      icon: mdi:wrench
+      initial: false
+
+  # Input Text per storico notifiche
+  input_text:
+    notifier_last_telegram:
+      name: "Ultima Notifica Telegram"
+      max: 255
+      initial: "Nessuna notifica"
+    
+    notifier_last_mobile:
+      name: "Ultima Notifica Mobile"
+      max: 255
+      initial: "Nessuna notifica"
+    
+    notifier_last_tts:
+      name: "Ultima Notifica TTS"
+      max: 255
+      initial: "Nessuna notifica"
+    
+    notifier_last_alexa:
+      name: "Ultima Notifica Alexa"
+      max: 255
+      initial: "Nessuna notifica"
+
+  # Input Number per configurazioni
+  input_number:
+    notifier_volume_tts:
+      name: "Volume TTS"
+      min: 0
+      max: 1
+      step: 0.1
+      initial: 0.7
+      icon: mdi:volume-high
+    
+    notifier_volume_alexa:
+      name: "Volume Alexa"
+      min: 0
+      max: 1
+      step: 0.1
+      initial: 0.7
+      icon: mdi:amazon-alexa
+    
+    notifier_priority_threshold:
+      name: "Soglia Priorità per Ore Silenziose"
+      min: 1
+      max: 4
+      step: 1
+      initial: 3
+      icon: mdi:priority-high
+
+  # Input Select per configurazioni
+  input_select:
+    notifier_default_priority:
+      name: "Priorità Predefinita"
+      options:
+        - "low"
+        - "normal"
+        - "high"
+        - "critical"
+      initial: "normal"
+      icon: mdi:flag-outline
+    
+    notifier_tts_language:
+      name: "Lingua TTS Predefinita"
+      options:
+        - "it"
+        - "en"
+        - "es"
+        - "fr"
+        - "de"
+      initial: "it"
+      icon: mdi:translate
+
+  # Input Datetime per ore silenziose
+  input_datetime:
+    notifier_quiet_start:
+      name: "Inizio Ore Silenziose"
+      has_date: false
+      has_time: true
+      initial: "22:00:00"
+    
+    notifier_quiet_end:
+      name: "Fine Ore Silenziose" 
+      has_date: false
+      has_time: true
+      initial: "07:00:00"
+
+  # Counter per statistiche
+  counter:
+    notifier_telegram_count:
+      name: "Contatore Telegram"
+      icon: mdi:telegram
+      initial: 0
+      step: 1
+    
+    notifier_mobile_count:
+      name: "Contatore Mobile"
+      icon: mdi:cellphone
+      initial: 0
+      step: 1
+    
+    notifier_tts_count:
+      name: "Contatore TTS"
+      icon: mdi:text-to-speech
+      initial: 0
+      step: 1
+    
+    notifier_alexa_count:
+      name: "Contatore Alexa"
+      icon: mdi:amazon-alexa
+      initial: 0
+      step: 1
+    
+    notifier_total_count:
+      name: "Contatore Totale"
+      icon: mdi:bell
+      initial: 0
+      step: 1
+
+  # Template sensors per logica avanzata
+  template:
+    - sensor:
+        - name: "Notifier Status"
+          state: >
+            {% if states('input_boolean.notifier_maintenance_mode') == 'on' %}
+              maintenance
+            {% elif states('input_boolean.notifier_dnd') == 'on' %}
+              dnd
+            {% elif states('input_boolean.notifier_quiet_hours') == 'on' %}
+              quiet
+            {% else %}
+              active
+            {% endif %}
+          icon: >
+            {% if states('input_boolean.notifier_maintenance_mode') == 'on' %}
+              mdi:wrench
+            {% elif states('input_boolean.notifier_dnd') == 'on' %}
+              mdi:bell-off
+            {% elif states('input_boolean.notifier_quiet_hours') == 'on' %}
+              mdi:bell-sleep
+            {% else %}
+              mdi:bell
+            {% endif %}
+          attributes:
+            friendly_name: "Stato Centro Notifiche"
+            maintenance: "{{ states('input_boolean.notifier_maintenance_mode') }}"
+            dnd: "{{ states('input_boolean.notifier_dnd') }}"
+            quiet_hours: "{{ states('input_boolean.notifier_quiet_hours') }}"
+
+        - name: "Notifier Statistics"
+          state: "{{ states('counter.notifier_total_count') }}"
+          icon: mdi:chart-bar
+          attributes:
+            friendly_name: "Statistiche Notifiche"
+            telegram: "{{ states('counter.notifier_telegram_count') }}"
+            mobile: "{{ states('counter.notifier_mobile_count') }}"
+            tts: "{{ states('counter.notifier_tts_count') }}"
+            alexa: "{{ states('counter.notifier_alexa_count') }}"
+            total: "{{ states('counter.notifier_total_count') }}"
+            last_notification: >
+              {% set sources = [
+                states('input_text.notifier_last_telegram'),
+                states('input_text.notifier_last_mobile'),
+                states('input_text.notifier_last_tts'),
+                states('input_text.notifier_last_alexa')
+              ] %}
+              {% set valid = sources | reject('eq', 'Nessuna notifica') | list %}
+              {{ valid | first if valid else 'Nessuna notifica' }}
+
+    - binary_sensor:
+        - name: "Notifier Quiet Hours Active"
+          state: >
+            {% set start_time = states('input_datetime.notifier_quiet_start') %}
+            {% set end_time = states('input_datetime.notifier_quiet_end') %}
+            {% set current_time = now().strftime('%H:%M:%S') %}
+            
+            {% if start_time and end_time %}
+              {% if start_time <= end_time %}
+                {{ start_time <= current_time <= end_time }}
+              {% else %}
+                {{ current_time >= start_time or current_time <= end_time }}
+              {% endif %}
+            {% else %}
+              false
+            {% endif %}
+          icon: >
+            {% if is_state('binary_sensor.notifier_quiet_hours_active', 'on') %}
+              mdi:clock-alert
+            {% else %}
+              mdi:clock-outline
+            {% endif %}
+          attributes:
+            friendly_name: "Ore Silenziose Attive"
+
+  # Automazioni per gestione automatica
+  automation:
+    - id: notifier_quiet_hours_manager
+      alias: "Notifier - Gestione Ore Silenziose"
+      description: "Attiva/disattiva automaticamente le ore silenziose"
+      trigger:
+        - platform: state
+          entity_id: binary_sensor.notifier_quiet_hours_active
+      action:
+        - service: input_boolean.turn_{{ 'on' if trigger.to_state.state == 'on' else 'off' }}
+          target:
+            entity_id: input_boolean.notifier_quiet_hours
+
+    - id: notifier_daily_reset
+      alias: "Notifier - Reset Contatori Giornaliero"
+      description: "Reset dei contatori notifiche ogni giorno"
+      trigger:
+        - platform: time
+          at: "00:00:00"
+      action:
+        - service: counter.reset
+          target:
+            entity_id:
+              - counter.notifier_telegram_count
+              - counter.notifier_mobile_count
+              - counter.notifier_tts_count
+              - counter.notifier_alexa_count
+              - counter.notifier_total_count
+
+    - id: notifier_dnd_based_on_sleep
+      alias: "Notifier - DND Basato su Modalità Sonno"
+      description: "Attiva DND quando è attiva la modalità sonno"
+      trigger:
+        - platform: state
+          entity_id: input_boolean.sleep_mode  # Sostituisci con la tua entità
+          to: 'on'
+        - platform: state
+          entity_id: input_boolean.sleep_mode  # Sostituisci con la tua entità
+          to: 'off'
+      condition:
+        - condition: state
+          entity_id: input_boolean.notifier_maintenance_mode
+          state: 'off'
+      action:
+        - service: input_boolean.turn_{{ trigger.to_state.state }}
+          target:
+            entity_id: input_boolean.notifier_dnd
+
+  # Script per funzioni avanzate
+  script:
+    notifier_test_all_channels:
+      alias: "Test Tutti i Canali di Notifica"
+      icon: mdi:test-tube
+      sequence:
+        - service: notify.telegram  # Sostituisci con il tuo servizio
+          data:
+            title: "🔔 Test Notifier"
+            message: "Test notifica Telegram - {{ now().strftime('%H:%M:%S') }}"
+        
+        - service: notify.mobile_app  # Sostituisci con il tuo servizio
+          data:
+            title: "🔔 Test Notifier"
+            message: "Test notifica Mobile - {{ now().strftime('%H:%M:%S') }}"
+        
+        - service: tts.google_translate_say  # Sostituisci con il tuo servizio
+          data:
+            entity_id: media_player.casa  # Sostituisci con il tuo media player
+            message: "Test notifica TTS"
+            language: "{{ states('input_select.notifier_tts_language') }}"
+
+    notifier_emergency_override:
+      alias: "Override Emergenza Notifiche"
+      icon: mdi:alert-circle
+      sequence:
+        - service: input_boolean.turn_off
+          target:
+            entity_id:
+              - input_boolean.notifier_dnd
+              - input_boolean.notifier_quiet_hours
+              - input_boolean.notifier_maintenance_mode
+        - service: notify.telegram  # Sostituisci con il tuo servizio
+          data:
+            title: "🚨 EMERGENZA - Override Attivo"
+            message: "Tutte le modalità silenziose sono state disattivate per emergenza"
+
+    notifier_weekly_stats:
+      alias: "Statistiche Settimanali Notifiche"
+      icon: mdi:chart-line
+      sequence:
+        - service: notify.telegram  # Sostituisci con il tuo servizio
+          data:
+            title: "📊 Statistiche Settimanali Notifiche"
+            message: >
+              Notifiche inviate questa settimana:
+              📱 Telegram: {{ states('counter.notifier_telegram_count') }}
+              📲 Mobile: {{ states('counter.notifier_mobile_count') }}
+              🔊 TTS: {{ states('counter.notifier_tts_count') }}
+              🗣️ Alexa: {{ states('counter.notifier_alexa_count') }}
+              📈 Totale: {{ states('counter.notifier_total_count') }}
+              
+              Stato attuale: {{ states('sensor.notifier_status') }}
+
+  # Sensori per monitoraggio
+  sensor:
+    - platform: history_stats
+      name: "Notifiche Oggi"
+      entity_id: counter.notifier_total_count
+      state: "{{ states('counter.notifier_total_count') | int }}"
+      type: count
+      start: "{{ now().replace(hour=0, minute=0, second=0, microsecond=0) }}"
+      end: "{{ now() }}"
