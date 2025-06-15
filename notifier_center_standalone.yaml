@@ -1,5 +1,5 @@
 # Package di supporto per il Blueprint Centro Notifiche
-# Salva questo file come packages/notifier_center.yaml
+# Salva questo file come packages/notifier_center_standalone.yaml
 
 notifier_center:
   # Input Boolean per modalità DND globale
