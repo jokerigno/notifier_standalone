@@ -1,0 +1,245 @@
+# Dashboard Lovelace per Centro Notifiche
+# Aggiungi questo codice come nuova scheda nel tuo dashboard
+
+title: Centro Notifiche
+path: notifier-center
+icon: mdi:bell
+badges: []
+cards:
+  # Intestazione con stato generale
+  - type: horizontal-stack
+    cards:
+      - type: entity
+        entity: sensor.notifier_status
+        name: Stato Sistema
+        icon: mdi:bell-ring
+        state_color: true
+      
+      - type: entity
+        entity: sensor.notifier_statistics
+        name: Notifiche Totali
+        icon: mdi:counter
+      
+      - type: entity
+        entity: binary_sensor.notifier_quiet_hours_active
+        name: Ore Silenziose
+        state_color: true
+
+  # Controlli principali
+  - type: entities
+    title: 🎛️ Controlli Principali
+    show_header_toggle: false
+    entities:
+      - entity: input_boolean.notifier_dnd
+        name: Non Disturbare
+        icon: mdi:bell-off
+      
+      - entity: input_boolean.notifier_maintenance_mode
+        name: Modalità Manutenzione
+        icon: mdi:wrench
+      
+      - type: divider
+      
+      - entity: input_datetime.notifier_quiet_start
+        name: Inizio Ore Silenziose
+      
+      - entity: input_datetime.notifier_quiet_end
+        name: Fine Ore Silenziose
+      
+      - type: divider
+      
+      - entity: input_select.notifier_default_priority
+        name: Priorità Predefinita
+      
+      - entity: input_select.notifier_tts_language
+        name: Lingua TTS
+
+  # Volumi e configurazioni audio
+  - type: entities
+    title: 🔊 Configurazioni Audio
+    show_header_toggle: false
+    entities:
+      - entity: input_number.notifier_volume_tts
+        name: Volume TTS
+      
+      - entity: input_number.notifier_volume_alexa
+        name: Volume Alexa
+      
+      - entity: input_number.notifier_priority_threshold
+        name: Soglia Priorità Ore Silenziose
+
+  # Statistiche dettagliate
+  - type: horizontal-stack
+    cards:
+      - type: statistic
+        entity: counter.notifier_telegram_count
+        name: Telegram
+        icon: mdi:telegram
+        period:
+          calendar:
+            period: day
+      
+      - type: statistic
+        entity: counter.notifier_mobile_count
+        name: Mobile
+        icon: mdi:cellphone
+        period:
+          calendar:
+            period: day
+      
+      - type: statistic
+        entity: counter.notifier_tts_count
+        name: TTS
+        icon: mdi:text-to-speech
+        period:
+          calendar:
+            period: day
+      
+      - type: statistic
+        entity: counter.notifier_alexa_count
+        name: Alexa
+        icon: mdi:amazon-alexa
+        period:
+          calendar:
+            period: day
+
+  # Grafico statistiche
+  - type: history-graph
+    title: 📈 Andamento Notifiche
+    hours_to_show: 24
+    refresh_interval: 300
+    entities:
+      - entity: counter.notifier_telegram_count
+        name: Telegram
+      - entity: counter.notifier_mobile_count
+        name: Mobile
+      - entity: counter.notifier_tts_count
+        name: TTS
+      - entity: counter.notifier_alexa_count
+        name: Alexa
+
+  # Ultime notifiche
+  - type: entities
+    title: 📝 Storico Notifiche
+    show_header_toggle: false
+    entities:
+      - entity: input_text.notifier_last_telegram
+        name: Ultima Telegram
+        icon: mdi:telegram
+      
+      - entity: input_text.notifier_last_mobile
+        name: Ultima Mobile
+        icon: mdi:cellphone
+      
+      - entity: input_text.notifier_last_tts
+        name: Ultima TTS
+        icon: mdi:text-to-speech
+      
+      - entity: input_text.notifier_last_alexa
+        name: Ultima Alexa
+        icon: mdi:amazon-alexa
+
+  # Script di test e utilità
+  - type: entities
+    title: 🧪 Test e Utilità
+    show_header_toggle: false
+    entities:
+      - entity: script.notifier_test_all_channels
+        name: Test Tutti i Canali
+        icon: mdi:test-tube
+        action_name: ESEGUI
+      
+      - entity: script.notifier_emergency_override
+        name: Override Emergenza
+        icon: mdi:alert-circle
+        action_name: ATTIVA
+      
+      - entity: script.notifier_weekly_stats
+        name: Statistiche Settimanali
+        icon: mdi:chart-line
+        action_name: INVIA
+
+  # Configurazione avanzata
+  - type: conditional
+    conditions:
+      - entity: input_boolean.notifier_maintenance_mode
+        state: "on"
+    card:
+      type: entities
+      title: ⚠️ Modalità Manutenzione Attiva
+      show_header_toggle: false
+      entities:
+        - type: custom:button-card
+          entity: input_boolean.notifier_maintenance_mode
+          name: Disattiva Manutenzione
+          icon: mdi:wrench-outline
+          color: orange
+          tap_action:
+            action: call-service
+            service: input_boolean.turn_off
+            service_data:
+              entity_id: input_boolean.notifier_maintenance_mode
+
+  # Configurazioni blueprint attive
+  - type: markdown
+    title: 📋 Blueprint Attivi
+    content: |
+      ### Automazioni Notifier Configurate
+      
+      Puoi controllare le tue automazioni basate sul blueprint **Centro Notifiche Avanzato** nella sezione [Automazioni](/config/automation).
+      
+      **Funzionalità principali:**
+      - ✅ Notifiche multi-canale (Telegram, Mobile, TTS, Alexa)
+      - ✅ Gestione priorità e modalità silenziosa
+      - ✅ Ripetizioni automatiche
+      - ✅ Logging dettagliato
+      - ✅ Controllo orari e DND
+      
+      **Per creare una nuova notifica:**
+      1. Vai in Impostazioni → Automazioni e Scene
+      2. Aggiungi Automazione → Sfoglia Blueprint
+      3. Seleziona "Centro Notifiche Avanzato"
+      4. Configura i parametri necessari
+
+  # Card stato servizi
+  - type: glance
+    title: 🔧 Stato Servizi
+    show_name: true
+    show_state: true
+    entities:
+      - entity: binary_sensor.notifier_quiet_hours_active
+        name: Ore Silenziose
+      
+      - entity: input_boolean.notifier_dnd
+        name: DND
+      
+      - entity: input_boolean.notifier_maintenance_mode
+        name: Manutenzione
+      
+      - entity: sensor.notifier_status
+        name: Stato
+
+  # Informazioni di sistema
+  - type: markdown
+    title: ℹ️ Informazioni Sistema
+    content: |
+      ### Centro Notifiche - Versione Standalone
+      
+      **Ultimo aggiornamento:** {{ now().strftime('%d/%m/%Y %H:%M') }}
+      
+      **Canali configurati:**
+      - 📱 Telegram: {{ states('counter.notifier_telegram_count') }} notifiche oggi
+      - 📲 Mobile Push: {{ states('counter.notifier_mobile_count') }} notifiche oggi  
+      - 🔊 TTS: {{ states('counter.notifier_tts_count') }} notifiche oggi
+      - 🗣️ Alexa: {{ states('counter.notifier_alexa_count') }} notifiche oggi
+      
+      **Stato attuale:** {{ states('sensor.notifier_status') | title }}
+      
+      ---
+      
+      **Note:**
+      - Durante le ore silenziose vengono inviate solo notifiche con priorità ≥ {{ states('input_number.notifier_priority_threshold') }}
+      - La modalità DND blocca tutte le notifiche eccetto quelle critiche
+      - La modalità manutenzione disabilita completamente il sistema
+      
+      **Supporto:** Creato come alternativa standalone al notifier AppDaemon
